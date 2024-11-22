@@ -1,4 +1,4 @@
-![A879B95A-1F02-43EB-8EA0-DB1668E8C262_1_102_a](https://github.com/user-attachments/assets/9923bb51-65f9-4e4b-83aa-b57caca4d256)# Awesome-Vision-Foundation-Model
+# Awesome-Vision-Foundation-Model
 
 ## Deep Fusion
 [1] Flamingo
