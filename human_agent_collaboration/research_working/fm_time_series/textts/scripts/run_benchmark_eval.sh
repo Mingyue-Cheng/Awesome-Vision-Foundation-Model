@@ -20,6 +20,10 @@ DEVICE="${DEVICE:-}"
 TORCH_DTYPE="${TORCH_DTYPE:-}"
 DEVICE_MAP="${DEVICE_MAP:-}"
 LOCAL_FILES_ONLY="${LOCAL_FILES_ONLY:-}"
+REGIME="${REGIME:-}"
+TRAIN_MANIFEST="${TRAIN_MANIFEST:-}"
+TRAIN_DATASETS="${TRAIN_DATASETS:-}"
+ENFORCE_PROTOCOL="${ENFORCE_PROTOCOL:-}"
 
 GIFT_SOURCE="${GIFT_SOURCE:-}"
 GIFT_CONFIG="${GIFT_CONFIG:-}"
@@ -71,6 +75,18 @@ export_common_env() {
   fi
   if [[ -n "$LOCAL_FILES_ONLY" ]]; then
     export LOCAL_FILES_ONLY
+  fi
+  if [[ -n "$REGIME" ]]; then
+    export REGIME
+  fi
+  if [[ -n "$TRAIN_MANIFEST" ]]; then
+    export TRAIN_MANIFEST
+  fi
+  if [[ -n "$TRAIN_DATASETS" ]]; then
+    export TRAIN_DATASETS
+  fi
+  if [[ -n "$ENFORCE_PROTOCOL" ]]; then
+    export ENFORCE_PROTOCOL
   fi
 }
 

@@ -33,6 +33,10 @@ NUM_PROB_SAMPLES="${NUM_PROB_SAMPLES:-16}"
 PROB_TEMPERATURE="${PROB_TEMPERATURE:-1.0}"
 PROB_TOP_P="${PROB_TOP_P:-0.9}"
 MAX_SAMPLES="${MAX_SAMPLES:-}"
+REGIME="${REGIME:-auto}"
+TRAIN_MANIFEST="${TRAIN_MANIFEST:-}"
+TRAIN_DATASETS="${TRAIN_DATASETS:-}"
+ENFORCE_PROTOCOL="${ENFORCE_PROTOCOL:-0}"
 SAVE_FEW_SHOT_CHECKPOINT="${SAVE_FEW_SHOT_CHECKPOINT:-0}"
 RUN_LABEL="${RUN_LABEL:-gift_${PROTOCOL}}"
 OUTPUT_DIR="${OUTPUT_DIR:-$PROJECT_ROOT/outputs/${RUN_LABEL}}"
@@ -56,6 +60,7 @@ CMD=(
   --num-prob-samples "$NUM_PROB_SAMPLES"
   --prob-temperature "$PROB_TEMPERATURE"
   --prob-top-p "$PROB_TOP_P"
+  --regime "$REGIME"
   --output-dir "$OUTPUT_DIR"
 )
 
@@ -105,6 +110,18 @@ fi
 
 if [[ -n "$MAX_SAMPLES" ]]; then
   CMD+=(--max-samples "$MAX_SAMPLES")
+fi
+
+if [[ -n "$TRAIN_MANIFEST" ]]; then
+  CMD+=(--train-manifest "$TRAIN_MANIFEST")
+fi
+
+if [[ -n "$TRAIN_DATASETS" ]]; then
+  CMD+=(--train-datasets "$TRAIN_DATASETS")
+fi
+
+if [[ "$ENFORCE_PROTOCOL" == "1" ]]; then
+  CMD+=(--enforce-protocol)
 fi
 
 if [[ "$SAVE_FEW_SHOT_CHECKPOINT" == "1" ]]; then

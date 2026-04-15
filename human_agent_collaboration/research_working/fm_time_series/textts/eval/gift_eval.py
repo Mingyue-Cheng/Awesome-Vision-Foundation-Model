@@ -31,6 +31,7 @@ from textts.eval.forecast_eval import (
     load_textts_model_for_eval,
     resolve_runtime_device,
 )
+from textts.eval.protocol import parse_name_list, resolve_protocol_metadata
 from textts.model.checkpoint import save_textts_checkpoint
 from textts.tokenization.forecast_quantizer import ForecastQuantizer
 from textts.training.sft import (
@@ -457,6 +458,10 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--prob-temperature", type=float, default=1.0)
     parser.add_argument("--prob-top-p", type=float, default=0.9)
     parser.add_argument("--max-samples", type=int, default=None)
+    parser.add_argument("--regime", type=str, default="auto", choices=["auto", "id", "ood", "ood_fewshot", "unknown"])
+    parser.add_argument("--train-manifest", type=str, default=None, help="Optional JSON manifest describing datasets seen in training.")
+    parser.add_argument("--train-datasets", type=str, default=None, help="Optional comma-separated benchmark dataset names used during training.")
+    parser.add_argument("--enforce-protocol", action="store_true", help="Raise an error if requested regime and overlap check disagree.")
     parser.add_argument("--output-dir", type=str, default=None)
     parser.add_argument("--save-few-shot-checkpoint", action="store_true")
     return parser
@@ -467,6 +472,9 @@ def main() -> None:
     args = parser.parse_args()
     dataset_filter = _parse_dataset_filter(args.dataset_filter)
     runtime_device = resolve_runtime_device(args.device)
+    requested_regime = args.regime
+    if args.protocol == "few-shot" and requested_regime == "auto":
+        requested_regime = "ood_fewshot"
 
     if args.protocol == "few-shot" and args.device_map is not None:
         raise ValueError("--device-map is not supported for few-shot training. Use --device instead.")
@@ -529,6 +537,15 @@ def main() -> None:
         dataset_filter=dataset_filter,
         max_records=args.max_eval_records,
     )
+    eval_dataset_names = sorted({item.dataset_name for item in eval_records_wrapped})
+    protocol_info = resolve_protocol_metadata(
+        benchmark="gift_eval",
+        eval_entities=eval_dataset_names,
+        requested_regime=requested_regime,
+        explicit_train_entities=parse_name_list(args.train_datasets),
+        train_manifest_path=args.train_manifest,
+        enforce_protocol=args.enforce_protocol,
+    )
     eval_records = [dict(item.raw_record) for item in eval_records_wrapped]
 
     eval_metrics, predictions = evaluate_forecast_records(
@@ -555,6 +572,7 @@ def main() -> None:
     gift_metrics, per_dataset_metrics, detailed_rows = summarize_gift_outputs(selected_wrapped, predictions)
     result = {
         "protocol": args.protocol,
+        "regime": protocol_info,
         "train_split": args.train_split if args.protocol == "few-shot" else None,
         "eval_split": args.eval_split,
         "few_shot_metrics": few_shot_metrics,

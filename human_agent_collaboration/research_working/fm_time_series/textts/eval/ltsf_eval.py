@@ -33,6 +33,7 @@ from textts.eval.forecast_eval import (
     load_textts_model_for_eval,
     resolve_runtime_device,
 )
+from textts.eval.protocol import parse_name_list, resolve_protocol_metadata
 from textts.tokenization.forecast_quantizer import ForecastQuantizer
 
 
@@ -345,6 +346,10 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--prob-temperature", type=float, default=1.0)
     parser.add_argument("--prob-top-p", type=float, default=0.9)
     parser.add_argument("--max-samples", type=int, default=None, help="Optional cap on evaluation windows after loading.")
+    parser.add_argument("--regime", type=str, default="auto", choices=["auto", "id", "ood", "ood_fewshot", "unknown"])
+    parser.add_argument("--train-manifest", type=str, default=None, help="Optional JSON manifest describing the datasets seen in training.")
+    parser.add_argument("--train-datasets", type=str, default=None, help="Optional comma-separated dataset names used during training.")
+    parser.add_argument("--enforce-protocol", action="store_true", help="Raise an error if requested regime and overlap check disagree.")
     parser.add_argument("--output-dir", type=str, default=None)
     return parser
 
@@ -355,6 +360,14 @@ def main() -> None:
 
     dataset_names = _resolve_dataset_names(args.datasets)
     horizons = _parse_horizons(args.horizons)
+    protocol_info = resolve_protocol_metadata(
+        benchmark="ltsf",
+        eval_entities=dataset_names,
+        requested_regime=args.regime,
+        explicit_train_entities=parse_name_list(args.train_datasets),
+        train_manifest_path=args.train_manifest,
+        enforce_protocol=args.enforce_protocol,
+    )
 
     model_name_or_path = args.model_name
     textts_modules_path = args.textts_modules_path
@@ -453,6 +466,7 @@ def main() -> None:
                 "lookback": args.lookback,
                 "split": args.split,
                 "target_count": len(per_target_rows),
+                "regime": protocol_info["final_regime"],
                 **aggregate_metrics,
             }
             summary_rows.append(summary_row)
@@ -466,7 +480,10 @@ def main() -> None:
     if args.output_dir:
         output_dir = Path(args.output_dir)
         _write_jsonl(output_dir / "summary.jsonl", summary_rows)
-        summary_payload = {"results": summary_rows}
+        summary_payload = {
+            "protocol": protocol_info,
+            "results": summary_rows,
+        }
         _write_json(output_dir / "summary.json", summary_payload)
 
 
